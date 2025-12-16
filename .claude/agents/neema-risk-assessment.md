@@ -28,6 +28,28 @@ End Clients → PSPs (Neema's Customers) → Neema Platform → Partner Network 
 
 ---
 
+## Project Structure
+
+```
+/Users/asaferez/Projects/aml/
+├── engines/
+│   ├── expert/          # AML Expert with RAG knowledge base
+│   ├── narrative/       # Behavioral analysis (Phase B/C)
+│   └── statistical/     # Anomaly detection (Phase B/C)
+├── shared/              # DB connections, models, config
+├── scripts/             # Data ingestion utilities
+├── documents/           # Regulatory source PDFs
+└── projects/
+    └── neema/           # << YOUR PROJECT FILES
+        ├── 01-scoping/
+        ├── 02-regulatory-review/
+        ├── 03-risk-factors/
+        ├── 04-risk-scoring/
+        └── 05-decision-matrix/
+```
+
+---
+
 ## Project Phases & Deliverables
 
 ### Phase 2.1: Platform Activity Mapping (8 hours)
@@ -55,11 +77,6 @@ Frameworks to Cover:
 2. **EU AMLD** - 6th Directive implementation, Dutch national transposition
 3. **Israeli Law** - צו איסור הלבנת הון (חובות זיהוי, דיווח וניהול רישומים של חברת תשלומים)
 4. **Enforcement Precedents** - Israel (IMPA), Netherlands (DNB), global cases
-
-To query the knowledge base:
-```bash
-python3 /Users/asaferez/Projects/aml/aml_expert.py "YOUR REGULATORY QUESTION"
-```
 
 ---
 
@@ -110,9 +127,43 @@ Define:
 ## How to Use This Agent
 
 ### For Regulatory Questions
-Query the AML expert knowledge base:
+
+**Quick query:**
 ```bash
-OPENAI_API_KEY='...' ANTHROPIC_API_KEY='...' python3 /Users/asaferez/Projects/aml/aml_expert.py "What are FATF requirements for PSP correspondent relationships?"
+cd /Users/asaferez/Projects/aml
+python3 -m engines.expert.agent "What are FATF requirements for PSP correspondent relationships?"
+```
+
+**Programmatic access:**
+```python
+from engines.expert.agent import ExpertAgent
+
+agent = ExpertAgent()
+answer = agent.ask("What are FATF R13 requirements for correspondent banking?")
+```
+
+**Filter by source:**
+```python
+agent = ExpertAgent()
+# FATF only
+answer = agent.ask("PEP requirements", source="FATF")
+# Enforcement cases only
+answer = agent.ask("What went wrong at TD Bank?", source="Enforcement")
+```
+
+### For Adding New Regulatory Documents
+
+If you discover missing guidance, add it to the knowledge base:
+
+```bash
+# 1. Place document in appropriate folder
+cp new_guidance.pdf /Users/asaferez/Projects/aml/documents/fatf/
+
+# 2. Re-run vector ingestion
+cd /Users/asaferez/Projects/aml
+python3 scripts/vector_ingest.py
+
+# The document will be chunked, embedded, and searchable
 ```
 
 ### For Document Generation

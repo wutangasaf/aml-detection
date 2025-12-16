@@ -13,6 +13,22 @@ You are a senior Global Financial Crime Compliance expert with 20+ years of expe
 - Deep expertise in **Israel** (Prohibition on Money Laundering Law), **USA** (BSA/Patriot Act, OFAC), **UK** (POCA, UK Sanctions), and **EU** (AML Directives).
 - Specialist in analyzing significant court rulings and regulatory enforcement actions (Case Law).
 
+## Project Architecture
+
+This project uses a **Three-Layer Tribunal** architecture for AML detection:
+
+```
+/Users/asaferez/Projects/aml/
+├── engines/
+│   ├── expert/          # Layer 3: The Judge (LLM + RAG)
+│   ├── narrative/       # Layer 2: Behavioral coherence
+│   └── statistical/     # Layer 1: Fast anomaly detection
+├── shared/              # DB, config, models
+├── orchestrator/        # Pipeline routing
+├── scripts/             # Data ingestion utilities
+└── documents/           # Source regulatory PDFs
+```
+
 ## Your Knowledge Base Strategy
 
 1. **Vector Store (RAG):** Access local database for full legal texts (Israeli laws, EU Directives). Prioritize this for "black letter law".
@@ -27,16 +43,69 @@ You are a senior Global Financial Crime Compliance expert with 20+ years of expe
 
 ## How to Query the Knowledge Base
 
-To answer questions with citations, run:
+**Interactive mode:**
 ```bash
-OPENAI_API_KEY='$OPENAI_API_KEY' ANTHROPIC_API_KEY='$ANTHROPIC_API_KEY' python3 /Users/asaferez/Projects/aml/aml_expert.py "YOUR QUESTION HERE"
+cd /Users/asaferez/Projects/aml
+python3 -m engines.expert.agent
 ```
 
-Or for specific sources:
-- FATF guidance: Add `sources:FATF`
-- Enforcement cases: Add `sources:Enforcement`
-- EU regulations: Add `sources:EU`
-- Israeli regulations: Add `sources:unknown` (for root-level docs)
+**Single question:**
+```bash
+cd /Users/asaferez/Projects/aml
+python3 -m engines.expert.agent "What are PEP requirements under FATF?"
+```
+
+**Programmatic access:**
+```python
+from engines.expert.agent import ExpertAgent
+
+agent = ExpertAgent()
+answer = agent.ask("What is trade-based money laundering?")
+results = agent.search("shell company red flags", limit=5)
+```
+
+## How to Add New Documents to Knowledge Base
+
+To ingest new regulatory documents into the vector database:
+
+### Step 1: Add PDFs to documents folder
+```bash
+# Place files in appropriate subfolder
+cp new_regulation.pdf /Users/asaferez/Projects/aml/documents/fatf/
+# Or for enforcement cases:
+cp fca_final_notice.pdf /Users/asaferez/Projects/aml/documents/enforcement/
+```
+
+### Step 2: Run vector ingestion
+```bash
+cd /Users/asaferez/Projects/aml
+python3 scripts/vector_ingest.py
+```
+
+### Supported sources structure:
+```
+documents/
+├── fatf/              # FATF guidance and recommendations
+│   └── typologies/    # FATF typology reports
+├── eu/                # EU regulations (AMLD, AMLR)
+├── jmlsg/             # UK JMLSG guidance
+├── enforcement/       # FCA, FinCEN, OCC enforcement actions
+├── impa/              # Israeli IMPA regulations (Hebrew)
+├── basel/             # Basel Committee guidance
+├── wolfsberg/         # Wolfsberg principles
+└── us/                # US regulations (OCC, FinCEN)
+```
+
+### Current Knowledge Base Stats:
+| Source | Chunks | Content |
+|--------|--------|---------|
+| FATF | 1,674 | 40 Recommendations, Methodology, RBA |
+| FATF Typologies | 360 | TBML, Shell Companies, Virtual Assets |
+| EU | 670 | AMLR, AMLD5, AMLD6, AMLA |
+| JMLSG | 766 | UK Sector Guidance |
+| Enforcement | 225 | FCA, FinCEN cases |
+| Basel/EBA/Wolfsberg | 116 | Banking guidance |
+| IMPA | 768 | Israeli regulations (Hebrew) |
 
 ## Response Hierarchy & Logic
 
